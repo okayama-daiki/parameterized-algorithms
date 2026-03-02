@@ -1,0 +1,105 @@
+\documentclass[
+  aspectratio=169,
+]{beamer}
+
+% Packages
+\usepackage{booktabs}      % For formal tables
+\usepackage{amsmath}       % AMS style math environment (e.g. \align, \gather, \cases)
+\usepackage{amssymb}       % AMS style math symbols (e.g. \mathbb, \leqslant)
+\usepackage{caption}       % To toggle display of captions
+\usepackage{luatexja}      % For Japanese
+
+% Bibliography
+\usepackage[
+  backend=biber,
+  style=authoryear,  % or alphabetic, ...
+  sorting=none,      % or ...
+]{biblatex}
+
+\addbibresource{references.bib}
+
+% Macros
+\newcommand{\info}[1]{\textcolor{ForestGreen}{#1}}  % To emphasize secondaly to \alert (e.g. \info{...})
+
+% Caption
+% \captionsetup[figure]{labelformat=empty}
+% \captionsetup[table]{labelformat=empty}
+
+% Theorem environments
+% \setbeamertemplate{theorems}[numbered]  % Numbered theorems, lemmas, etc.
+
+% Beamer settings
+\title{2.2.1 Vertex Cover Kernelization}
+\subtitle{Parameterized Algorithms pp.17--22}
+\author{岡山 大輝 (\textit{ad25r010@guh.u-hyogo.ac.jp})}
+\institute{兵庫県立大学大学院 情報科学研究科 東川研究室}
+\date{\today}
+
+% \AtBeginSection[]
+% {
+%   \begin{frame}{目次}
+%     \tableofcontents[currentsection]
+%   \end{frame}
+% }
+
+% Theme
+\usetheme{metropolis}
+\usecolortheme{default}
+\metroset{block=fill}
+\metroset{sectionpage=none}
+
+% Fonts
+\setbeamerfont{title}{size=\LARGE,series=\bfseries}
+\setbeamerfont{frametitle}{size=\large,series=\bfseries}
+\setbeamerfont{theorem}{shape=\upshape}
+\setbeamerfont{date}{size=\small}
+\renewcommand{\kanjifamilydefault}{\gtdefault}
+\renewcommand{\familydefault}{\sfdefault}
+\usefonttheme{professionalfonts}
+\usefonttheme{structurebold}
+\usepackage{mlmodern}
+\usepackage[T1]{fontenc}
+
+% ==============================================================================================
+% ==============================================================================================
+
+\begin{document}
+
+\begin{frame}
+	\titlepage{}
+\end{frame}
+
+\begin{frame}{What is Kernelization?}
+\end{frame}
+
+\begin{frame}{Why \textsc{Vertex Cover}?}
+	\begin{itemize}
+		\item
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Kernelization for the \textsc{Vertex Cover} Problem}
+	\textit{The Vertex Cover problem is often referred to as the Drosophila of parameterized complexity.\cite{fellows2018known}}
+
+	\begin{itemize}
+		\item \(\mathcal{O}(k^2)\) --- \cite{buss1993nondeterminism}
+		\item \(3k\) --- \cite{chor2004linear}
+		\item \(2k\) --- \cite{chen2001vertex}
+		\item \(2k\) --- \cite{dehne2004greedy}
+		\item \(2k - c\) --- \cite{soleimanfallah2011kernel}
+		\item \(2k - c \log k\) --- \cite{lampis2011kernel}
+		\item \(2k - \mathcal{O}(\log k)\) --- \cite{narayanaswamy2012lp}
+	\end{itemize}
+
+	\note{
+		\begin{itemize}
+			\item \cite{chor2004linear}は副次的な結果と思われる．
+		\end{itemize}
+	}
+\end{frame}
+
+\begin{frame}[allowframebreaks]{References}
+	\printbibliography[heading=none]{}
+\end{frame}
+
+\end{document}
