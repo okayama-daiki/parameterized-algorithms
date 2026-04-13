@@ -1,5 +1,6 @@
 \documentclass[
   aspectratio=169,
+  % draft,
 ]{beamer}
 
 % Packages
@@ -7,7 +8,13 @@
 \usepackage{amsmath}       % AMS style math environment (e.g. \align, \gather, \cases)
 \usepackage{amssymb}       % AMS style math symbols (e.g. \mathbb, \leqslant)
 \usepackage{caption}       % To toggle display of captions
+\usepackage{tikz}          % For hand-drawn style figures
+\usepackage{graphicx}      % For images
 \usepackage{luatexja}      % For Japanese
+\usepackage{chessfss}      % For chess pieces
+\usepackage{xspace}
+\usepackage{ulem}
+\usepackage{graphicx}
 
 % Bibliography
 \usepackage[
@@ -19,21 +26,36 @@
 \addbibresource{references.bib}
 
 % Macros
-\newcommand{\info}[1]{\textcolor{ForestGreen}{#1}}  % To emphasize secondaly to \alert (e.g. \info{...})
+\newcommand{\info}[1]{\textcolor{green!70!black}{#1}}  % To emphasize secondaly to \alert (e.g. \info{...})
+\newcommand{\FPT}{{\upshape FPT}\xspace}
+\newcommand{\cP}{\mathcal{P}}
 
 % Caption
-% \captionsetup[figure]{labelformat=empty}
+\captionsetup[figure]{labelformat=empty}
 % \captionsetup[table]{labelformat=empty}
 
 % Theorem environments
 % \setbeamertemplate{theorems}[numbered]  % Numbered theorems, lemmas, etc.
+% \uselanguage{Japanese}
+% \languagepath{Japanese}
+% \deftranslation[to=Japanese]{Theorem}{定理}
+% \deftranslation[to=Japanese]{Lemma}{補題}
+% \deftranslation[to=Japanese]{Definition}{定義}
+% \deftranslation[to=Japanese]{Corollary}{系}
+% \deftranslation[to=Japanese]{Proof}{証明}
+% \deftranslation[to=Japanese]{Example}{例}
+% \deftranslation[to=Japanese]{Problem}{問題}
+\newtheorem{claim}{Claim}
+\newtheorem{remark}{Remark}
 
 % Beamer settings
-\title{2.2.1 Vertex Cover Kernelization}
-\subtitle{Parameterized Algorithms pp.17--22}
+\title{Chapter 2: Kernelization}
+\subtitle{Parameterized Algorithms pp.17--20}
 \author{岡山 大輝 (\textit{ad25r010@guh.u-hyogo.ac.jp})}
 \institute{兵庫県立大学大学院 情報科学研究科 東川研究室}
 \date{\today}
+
+\setbeameroption{show notes on second screen=right}
 
 % \AtBeginSection[]
 % {
@@ -59,6 +81,42 @@
 \usefonttheme{structurebold}
 \usepackage{mlmodern}
 \usepackage[T1]{fontenc}
+\usetikzlibrary{arrows.meta,calc,positioning,shapes.arrows}
+
+\DeclareRobustCommand{\PLC}{\textnormal{\textsc{Point Line Cover}}}
+\DeclareRobustCommand{\VC}{\textnormal{\textsc{Vertex Cover}}}
+
+% Balloon macro for Point Line Cover illustration
+% Usage: \drawballoon{x}{y}{color}
+\newcommand{\drawballoon}[3]{%
+	\fill[#3] (#1,#2) ellipse (0.28 and 0.33);
+	\fill[white, opacity=0.45] (#1+0.08,#2+0.1) circle (0.08);
+	\fill[black!50] (#1,#2-0.33) -- +(-0.08,-0.12) -- +(0.08,-0.12) -- cycle;
+	\draw[gray!60] (#1,#2-0.45) -- (#1,#2-0.85);
+}
+
+% Bullet macro for Point Line Cover illustration
+% Usage: \drawbullet{x}{y}{color}
+\newcommand{\drawbullet}[3]{%
+	\begin{scope}[shift={(#1,#2)}]
+		% Bullet head
+		\filldraw[fill=black!25, draw=black!65, line width=0.30pt]
+		(-0.16,0.00) .. controls (-0.12,0.06) and (-0.05,0.06) .. (0.00,0.05)
+		-- (0.00,-0.05)
+		.. controls (-0.05,-0.06) and (-0.12,-0.06) .. (-0.16,0.00) -- cycle;
+
+		% Neck
+		\filldraw[fill=black!20, draw=black!65, line width=0.30pt]
+		(0.00,-0.05) -- (0.05,-0.05) -- (0.08,-0.04) -- (0.08,0.04) -- (0.05,0.05) -- (0.00,0.05) -- cycle;
+
+		% Casing and rim
+		\filldraw[fill=#3, draw=black!65, line width=0.30pt] (0.08,-0.06) rectangle (0.29,0.06);
+		\filldraw[fill=black!35, draw=black!65, line width=0.30pt] (0.29,-0.07) rectangle (0.33,0.07);
+
+		% Highlight
+		\fill[white, opacity=0.25, rounded corners=0.01cm] (0.11,0.02) rectangle (0.26,0.04);
+	\end{scope}
+}
 
 % ==============================================================================================
 % ==============================================================================================
@@ -69,37 +127,775 @@
 	\titlepage{}
 \end{frame}
 
-\begin{frame}{What is Kernelization?}
-\end{frame}
-
-\begin{frame}{Why \textsc{Vertex Cover}?}
+\begin{frame}{謝辞}
+	\structure{本スライドは下記の資料を参考にして作成した．}
 	\begin{itemize}
-		\item
+		\item \url{https://youtu.be/NMLVXJmyGbQ}
 	\end{itemize}
 \end{frame}
 
-\begin{frame}{Kernelization for the \textsc{Vertex Cover} Problem}
-	\textit{The Vertex Cover problem is often referred to as the Drosophila of parameterized complexity.\cite{fellows2018known}}
+\begin{frame}[plain]
+	\begin{columns}[c]
+		\begin{column}{0.40\textwidth}
+			\centering
+			\includegraphics[width=0.8\linewidth]{figures/michelangelo.jpg}
+		\end{column}
+		\begin{column}{0.5\textwidth}
+			\itshape
+			``すべての石の塊には彫像が内在しており，それを見出すのが彫刻家の仕事である''
 
-	\begin{itemize}
-		\item \(\mathcal{O}(k^2)\) --- \cite{buss1993nondeterminism}
-		\item \(3k\) --- \cite{chor2004linear}
-		\item \(2k\) --- \cite{chen2001vertex}
-		\item \(2k\) --- \cite{dehne2004greedy}
-		\item \(2k - c\) --- \cite{soleimanfallah2011kernel}
-		\item \(2k - c \log k\) --- \cite{lampis2011kernel}
-		\item \(2k - \mathcal{O}(\log k)\) --- \cite{narayanaswamy2012lp}
-	\end{itemize}
+			\vspace{1em}
+			\normalsize\upshape
+			--- Michelangelo Buonarroti (1475--1564)
+		\end{column}
+	\end{columns}
 
-	\note{
-		\begin{itemize}
-			\item \cite{chor2004linear}は副次的な結果と思われる．
-		\end{itemize}
+	\note[item]{問題があって，ある時点で不要な部分を取り除き，本質的な部分だけを残したい，というのがカーネル化の意義．}
+	\note[item]{問題を解くのではなく，いかにインスタンスサイズを小さくできるかという}
+\end{frame}
+
+\begin{frame}{前処理}
+	\vskip 0.5em
+
+	\begin{figure}
+		\centering
+		\begin{tikzpicture}[scale=0.7]
+			\foreach \x in {0,...,7} {
+					\foreach \y in {0,...,7} {
+							\pgfmathparse{mod(\x+\y,2) ? "black!20" : "white"}
+							\edef\colour{\pgfmathresult}
+							\path[fill=\colour] (\x,\y) rectangle ++(1,1);
+						}
+				}
+			\draw (0,0) rectangle (8,8);
+
+			% Coordinates (Left board)
+			\foreach \i/\l in {0/a, 1/b, 2/c, 3/d, 4/e, 5/f, 6/g, 7/h} {
+					\node at (\i+0.5, -0.3) {\tiny \l};
+				}
+			\foreach \i/\l in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8} {
+					\node at (-0.3, \i+0.5) {\tiny \l};
+				}
+
+			% White pieces (Active in checkmate)
+			\node at (3.5, 4.5) {\Huge \WhiteKnightOnWhite};
+			\node at (0.5, 4.5) {\Huge \WhiteRookOnWhite};
+			\node at (0.5, 0.5) {\Huge \WhiteKingOnWhite};
+
+			% Relevant Black pieces
+			\node at (6.5, 7.5) {\Huge \BlackKingOnWhite};
+			\node at (5.5, 7.5) {\Huge \BlackRookOnWhite};
+			\node at (6.5, 6.5) {\Huge \BlackPawnOnWhite};
+			\node at (5.5, 6.5) {\Huge \BlackPawnOnWhite};
+
+			% Irrelevant Black pieces
+			\node at (0.5, 7.5) {\Huge \BlackRookOnWhite};
+			\node at (2.5, 7.5) {\Huge \BlackBishopOnWhite};
+			\node at (0.5, 6.5) {\Huge \BlackPawnOnWhite};
+			\node at (2.5, 6.5) {\Huge \BlackPawnOnWhite};
+			\node at (1.5, 5.5) {\Huge \BlackPawnOnWhite};
+
+			\onslide<2->{
+				% Arrow
+				\node[single arrow, fill=black!20, minimum height=0.8cm, minimum width=0.5cm, single arrow head extend=1.5mm] at (8.85, 4) {};
+
+				% Right board (Kernel)
+				\begin{scope}[xshift=10cm]
+					\foreach \x in {0,...,7} {
+							\foreach \y in {0,...,7} {
+									\pgfmathparse{mod(\x+\y,2) ? "black!20" : "white"}
+									\edef\colour{\pgfmathresult}
+									\path[fill=\colour] (\x,\y) rectangle ++(1,1);
+								}
+						}
+					\draw (0,0) rectangle (8,8);
+
+					% Coordinates (Right board)
+					\foreach \i/\l in {0/a, 1/b, 2/c, 3/d, 4/e, 5/f, 6/g, 7/h} {
+							\node at (\i+0.5, -0.3) {\tiny \l};
+						}
+					\foreach \i/\l in {0/1, 1/2, 2/3, 3/4, 4/5, 5/6, 6/7, 7/8} {
+							\node at (-0.3, \i+0.5) {\tiny \l};
+						}
+
+					% White pieces
+					\node at (3.5, 4.5) {\Huge \WhiteKnightOnWhite};
+					\node at (0.5, 4.5) {\Huge \WhiteRookOnWhite};
+					\node at (0.5, 0.5) {\Huge \WhiteKingOnWhite};
+
+					% Relevant Black pieces
+					\node at (6.5, 7.5) {\Huge \BlackKingOnWhite};
+					\node at (5.5, 7.5) {\Huge \BlackRookOnWhite};
+					\node at (6.5, 6.5) {\Huge \BlackPawnOnWhite};
+					\node at (5.5, 6.5) {\Huge \BlackPawnOnWhite};
+				\end{scope}
+			}
+		\end{tikzpicture}
+
+		\note{
+			\begin{itemize}
+				\item 左の盤面を見てください
+			\end{itemize}
+		}
+	\end{figure}
+
+	\center{白は2手以内にチェックメイトできるか？}
+\end{frame}
+
+\begin{frame}{前処理：新卒採用}
+	\textbf{問題}：数千人の応募者から \(k\) 人の優秀な人材を採用できるか？
+\end{frame}
+
+\begin{frame}{多項式時間前処理の失われた大陸}
+
+	\begin{block}{\textbf{素朴な定義} (有用な前処理アルゴリズム)}
+		パラメータ化問題 \(Q\) の\alert{有用な前処理アルゴリズム}とは，任意のインスタンス \(I \in \Sigma^*\) を多項式時間で，同値なインスタンス \(I'\) であって \(|I'| < |I|\) を満たすものに変換するアルゴリズムである（と定義してみる）．
+	\end{block}
+
+	\begin{alertblock}{問題点}
+		NP困難な問題に対してこのような前処理アルゴリズムが存在するならば，
+		繰り返し適用することでインスタンスが定数サイズになり，
+		$\mathcal{P} = \mathcal{NP}$ が導かれる．
+	\end{alertblock}
+
+	\note[item]{もし　\(\mathcal{P} \neq \mathcal{NP}\) を信じるならば，そのような前処理アルゴリズムは存在しないことになる．}
+	\note[item]{問いの立て方が間違っていた．パラメータ \(k\) の観点から何か上手いことはいえないだろうか．}
+\end{frame}
+
+\begin{frame}{\PLC}
+	\begin{problem}[\PLC]
+	平面上の \(n\) 点の集合 \(\cP\) と整数 \(k\) が与えられたとき，\\
+	高々 \(k\) 本の直線で \(\cP\) の全ての点を覆うことができるか？
+	\end{problem}
+
+	\begin{example}
+		\vskip -2em
+
+		\begin{figure}
+			\centering
+			\begin{tikzpicture}[scale=0.58]
+				% ---- Gunner (silhouette) ----
+				\begin{scope}[shift={(-1.5,2.8)}]
+					\fill[black!55] (0,0.95) circle (0.18);
+					\fill[black!55] (-0.12,0.75) -- (0.18,0.68) -- (0.24,0.25) -- (-0.02,0.20) -- cycle;
+					\fill[black!55] (0.02,0.58) -- (0.49,0.53) -- (0.52,0.43) -- (0.00,0.43) -- cycle;
+					\begin{scope}[shift={(0,0.15)}]
+						\fill[black!55] (0.49,0.53) -- (0.77,0.53) -- (0.80,0.49) -- (0.80,0.42) -- (0.49,0.42) -- cycle;
+						\fill[black!55] (0.80,0.48) -- (0.89,0.47) -- (0.89,0.44) -- (0.80,0.43) -- cycle;
+						\fill[black!55] (0.56,0.44) -- (0.66,0.44) -- (0.62,0.26) -- (0.52,0.29) -- cycle;
+					\end{scope}
+					\fill[black!55] (0.47,0.47) circle (0.025);
+					\fill[black!55] (-0.22,0.42) -- (-0.08,0.52) -- (0.05,0.40) -- (-0.10,0.30) -- cycle;
+					\fill[black!55] (0.02,0.20) -- (-0.18,-0.75) -- (-0.06,-0.78) -- (0.11,0.18) -- cycle;
+					\fill[black!55] (0.11,0.18) -- (0.30,-0.70) -- (0.42,-0.67) -- (0.20,0.20) -- cycle;
+				\end{scope}
+
+				% ---- Five bullets above the gunner ----
+				\only<1>{
+					\foreach \x in {-2.20,-1.85,-1.50,-1.15,-0.80} {
+							\begin{scope}[rotate around={-90:(\x,4.65)}]
+								\drawbullet{\x}{4.65}{black!30}
+							\end{scope}
+						}
+				}
+
+				\only<1>{
+					\foreach \x/\y in {
+							1/1,2/2,3/3,4/4,5/5,6/6,
+							7/1,8/3,9/5, 7/2,8/4,9/6,
+							10/1,10/2,10/3, 11/4,11/5,11/6%
+						}{ \drawballoon{\x}{\y}{black!55} }
+				}
+				\only<2->{
+					% y=x
+					\foreach \x/\y in {1/1,2/2,3/3,4/4,5/5,6/6}
+						{\drawballoon{\x}{\y}{black!55}}
+					% slope-2 A
+					\foreach \x/\y in {7/1,8/3,9/5}
+						{\drawballoon{\x}{\y}{black!55}}
+					% slope-2 B
+					\foreach \x/\y in {7/2,8/4,9/6}
+						{\drawballoon{\x}{\y}{black!55}}
+					% x=10
+					\foreach \x/\y in {10/1,10/2,10/3}
+						{\drawballoon{\x}{\y}{black!55}}
+					% x=11
+					\foreach \x/\y in {11/4,11/5,11/6}
+						{\drawballoon{\x}{\y}{black!55}}
+				}
+
+				% ---- Ground ----
+				\draw[gray!40, thick] (-2,0) -- (12.5,0);
+
+				% ---- Label ----
+				\only<1>{\node[font=\small] at (5.5,-0.6) {Q. \(k = 5\) 発の銃弾で全ての風船を割ることができるか？};}
+
+				% ---- Covering lines (overlay 2) ----
+				\onslide<2->{
+					% y = x
+					\draw[black!80, thick] (0,0) -- (6.8,6.8)
+					node[right,font=\scriptsize] {\(\ell_1\)};
+					% y = 2x - 13
+					\draw[black!80, thick] (6.6,0.2) -- (9.8,6.6)
+					node[right,font=\scriptsize] {\(\ell_2\)};
+					% y = 2x - 12
+					\draw[black!80, thick] (6.1,0.2) -- (9.8,7.6)
+					node[right,font=\scriptsize] {\(\ell_3\)};
+					% x = 10
+					\draw[black!80, thick] (10,0.2) -- (10,3.8)
+					node[above,font=\scriptsize] {\(\ell_4\)};
+					% x = 11
+					\draw[black!80, thick] (11,3.2) -- (11,6.8)
+					node[above,font=\scriptsize] {\(\ell_5\)};
+					\node[font=\small] at (5.5,-0.6) {A. Yes};
+				}
+			\end{tikzpicture}
+		\end{figure}
+
+		\vskip -0.5em
+	\end{example}
+
+	\note[item]{\(n>1\) のときは，\(1\) 点のみしか通らない，あるいは全く点を通らない直線を採用する理由がないので，考えるべき直線の数は高々 \(n^2\) 程度であることに注意．}
+\end{frame}
+
+\begin{frame}{\PLC の前処理ルール}
+	\begin{problem}[\PLC]
+	平面上の \(n\) 点の集合 \(\cP\) と整数 \(k\) が与えられたとき，\\
+	高々 \(k\) 本の直線で \(\cP\) の全ての点を覆うことができるか？
+	\end{problem}
+
+	\begin{block}{Reduction PLC.}
+		\(k+1\) 点を通る直線 \(\ell\) が存在するならば，\(\cP\) から \(\ell\) の点を削除し，\(k\) を \(1\) 減らす．
+	\end{block}
+
+	\vskip 1em
+
+	\begin{columns}[b,onlytextwidth]
+		\begin{column}[b]{0.44\textwidth}
+			\centering
+
+			\begin{tikzpicture}[scale=0.38]
+				% Gunner
+				\begin{scope}[shift={(-1.5,2.8)}]
+					\fill[black!55] (0,0.95) circle (0.18);
+					\fill[black!55] (-0.12,0.75) -- (0.18,0.68) -- (0.24,0.25) -- (-0.02,0.20) -- cycle;
+					\fill[black!55] (0.02,0.58) -- (0.49,0.53) -- (0.52,0.43) -- (0.00,0.43) -- cycle;
+					\begin{scope}[shift={(0,0.15)}]
+						\fill[black!55] (0.49,0.53) -- (0.77,0.53) -- (0.80,0.49) -- (0.80,0.42) -- (0.49,0.42) -- cycle;
+						\fill[black!55] (0.80,0.48) -- (0.89,0.47) -- (0.89,0.44) -- (0.80,0.43) -- cycle;
+						\fill[black!55] (0.56,0.44) -- (0.66,0.44) -- (0.62,0.26) -- (0.52,0.29) -- cycle;
+					\end{scope}
+					\fill[black!55] (0.47,0.47) circle (0.025);
+					\fill[black!55] (-0.22,0.42) -- (-0.08,0.52) -- (0.05,0.40) -- (-0.10,0.30) -- cycle;
+					\fill[black!55] (0.02,0.20) -- (-0.18,-0.75) -- (-0.06,-0.78) -- (0.11,0.18) -- cycle;
+					\fill[black!55] (0.11,0.18) -- (0.30,-0.70) -- (0.42,-0.67) -- (0.20,0.20) -- cycle;
+				\end{scope}
+
+				% Five bullets
+				\foreach \x in {-2.20,-1.85,-1.50,-1.15,-0.80} {
+						\begin{scope}[rotate around={-90:(\x,4.65)}]
+							\drawbullet{\x}{4.65}{black!30}
+						\end{scope}
+					}
+
+				% Balloons
+				\foreach \x/\y in {
+						1/1,2/2,3/3,4/4,5/5,6/6,
+						7/1,8/3,9/5, 7/2,8/4,9/6,
+						10/1,10/2,10/3, 11/4,11/5,11/6
+					}{ \drawballoon{\x}{\y}{black!55} }
+
+				% Ground and l1
+				\draw[gray!40, thick] (-2,0) -- (12.5,0);
+				\draw[orange!80!black, thick] (0,0) -- (6.8,6.8)
+				node[right,font=\scriptsize] {\(\ell_1\)};
+				\node[font=\scriptsize] at (5.5,-0.6) {\((\cP, 5)\)};
+			\end{tikzpicture}
+		\end{column}
+
+		\begin{column}[b]{0.10\textwidth}
+			\centering
+			\vspace{1.6em}
+			\begin{tikzpicture}
+				\node[single arrow, fill=black!20, draw=black!40,
+					minimum height=0.78cm, minimum width=0.45cm,
+					single arrow head extend=1.9mm] {};
+			\end{tikzpicture}
+		\end{column}
+
+		\begin{column}[b]{0.44\textwidth}
+			\centering
+
+			\begin{tikzpicture}[scale=0.38]
+				% Gunner
+				\begin{scope}[shift={(-1.5,2.8)}]
+					\fill[black!55] (0,0.95) circle (0.18);
+					\fill[black!55] (-0.12,0.75) -- (0.18,0.68) -- (0.24,0.25) -- (-0.02,0.20) -- cycle;
+					\fill[black!55] (0.02,0.58) -- (0.49,0.53) -- (0.52,0.43) -- (0.00,0.43) -- cycle;
+					\begin{scope}[shift={(0,0.15)}]
+						\fill[black!55] (0.49,0.53) -- (0.77,0.53) -- (0.80,0.49) -- (0.80,0.42) -- (0.49,0.42) -- cycle;
+						\fill[black!55] (0.80,0.48) -- (0.89,0.47) -- (0.89,0.44) -- (0.80,0.43) -- cycle;
+						\fill[black!55] (0.56,0.44) -- (0.66,0.44) -- (0.62,0.26) -- (0.52,0.29) -- cycle;
+					\end{scope}
+					\fill[black!55] (0.47,0.47) circle (0.025);
+					\fill[black!55] (-0.22,0.42) -- (-0.08,0.52) -- (0.05,0.40) -- (-0.10,0.30) -- cycle;
+					\fill[black!55] (0.02,0.20) -- (-0.18,-0.75) -- (-0.06,-0.78) -- (0.11,0.18) -- cycle;
+					\fill[black!55] (0.11,0.18) -- (0.30,-0.70) -- (0.42,-0.67) -- (0.20,0.20) -- cycle;
+				\end{scope}
+
+				% Four bullets (one removed)
+				\foreach \x in {-2.20,-1.85,-1.50,-1.15} {
+						\begin{scope}[rotate around={-90:(\x,4.65)}]
+							\drawbullet{\x}{4.65}{black!30}
+						\end{scope}
+					}
+
+				% Remaining balloons after removing points on l1
+				\foreach \x/\y in {
+						7/1,8/3,9/5, 7/2,8/4,9/6,
+						10/1,10/2,10/3, 11/4,11/5,11/6
+					}{ \drawballoon{\x}{\y}{black!55} }
+
+				% Ground
+				\draw[gray!40, thick] (-2,0) -- (12.5,0);
+				% Invisible l1 to keep the same bounding box as the left figure
+				\draw[opacity=0] (0,0) -- (6.8,6.8)
+				node[right,font=\scriptsize,opacity=0] {\(\ell_1\)};
+				\node[font=\scriptsize] at (5.5,-0.6) {\((\cP', 4)\)};
+			\end{tikzpicture}
+		\end{column}
+	\end{columns}
+
+	\note[item]{もしその \(k\) 個の風船を打たないとすると，それぞれの風船を個別に打つ必要があり，\(k\) 個の銃弾を使い果たしてしまう}
+	\note[item]{その直線上の任意の \(2\) 点を通る直線と，\(k\) 点全てを通る直線は全く同一であることに注意すること．}
+\end{frame}
+
+\begin{frame}{\PLC の前処理の終了条件}
+	\begin{block}{Reduction PLC.}
+		\(k+1\) 点を通る直線 \(\ell\) が存在するならば，\(\cP\) から \(\ell\) の点を削除し，\(k\) を \(1\) 減らす．
+	\end{block}
+
+	\begin{block}{前処理の終了条件}
+		\begin{enumerate}
+			\item \(k \ge 0\) かつ \(\cP = \emptyset\) → \textbf{YES}；\quad \(k = 0\) かつ \(\cP \neq \emptyset\) → \textbf{NO}
+			\item \(k+1\) 点を通る直線が存在しない → \textbf{???}
+		\end{enumerate}
+	\end{block}
+
+	\vskip 0.2em
+
+	% ---- Three termination cases side by side ----
+	\begin{columns}[c,onlytextwidth]
+		%--- Case 1: YES (no balloons, bullets remain) ---
+		\begin{column}{0.30\textwidth}
+			\centering
+			\begin{tikzpicture}[scale=0.37]
+				% Gunner
+				\begin{scope}[shift={(-1.5,2.8)}]
+					\fill[black!55] (0,0.95) circle (0.18);
+					\fill[black!55] (-0.12,0.75) -- (0.18,0.68) -- (0.24,0.25) -- (-0.02,0.20) -- cycle;
+					\fill[black!55] (0.02,0.58) -- (0.49,0.53) -- (0.52,0.43) -- (0.00,0.43) -- cycle;
+					\begin{scope}[shift={(0,0.15)}]
+						\fill[black!55] (0.49,0.53) -- (0.77,0.53) -- (0.80,0.49) -- (0.80,0.42) -- (0.49,0.42) -- cycle;
+						\fill[black!55] (0.80,0.48) -- (0.89,0.47) -- (0.89,0.44) -- (0.80,0.43) -- cycle;
+						\fill[black!55] (0.56,0.44) -- (0.66,0.44) -- (0.62,0.26) -- (0.52,0.29) -- cycle;
+					\end{scope}
+					\fill[black!55] (0.47,0.47) circle (0.025);
+					\fill[black!55] (-0.22,0.42) -- (-0.08,0.52) -- (0.05,0.40) -- (-0.10,0.30) -- cycle;
+					\fill[black!55] (0.02,0.20) -- (-0.18,-0.75) -- (-0.06,-0.78) -- (0.11,0.18) -- cycle;
+					\fill[black!55] (0.11,0.18) -- (0.30,-0.70) -- (0.42,-0.67) -- (0.20,0.20) -- cycle;
+				\end{scope}
+				% Two bullets remaining (k > 0)
+				\foreach \x in {-2.20,-1.85} {
+						\begin{scope}[rotate around={-90:(\x,4.65)}]
+							\drawbullet{\x}{4.65}{black!30}
+						\end{scope}
+					}
+				% No balloons (P is empty)
+				\draw[gray!40, thick] (-2,0) -- (9,0);
+				\draw[opacity=0] (9,7) -- (9,0);
+				\node[font=\scriptsize] at (3.5,-0.6) {\(\cP = \emptyset\)};
+			\end{tikzpicture}
+
+			\vskip 0.3em
+			\info{\textbf{Yes}}
+		\end{column}
+
+		\begin{column}{0.04\textwidth}\end{column}
+
+		%--- Case 2: NO (bullets empty, balloons remain) ---
+		\begin{column}{0.30\textwidth}
+			\centering
+			\begin{tikzpicture}[scale=0.37]
+				% Gunner
+				\begin{scope}[shift={(-1.5,2.8)}]
+					\fill[black!55] (0,0.95) circle (0.18);
+					\fill[black!55] (-0.12,0.75) -- (0.18,0.68) -- (0.24,0.25) -- (-0.02,0.20) -- cycle;
+					\fill[black!55] (0.02,0.58) -- (0.49,0.53) -- (0.52,0.43) -- (0.00,0.43) -- cycle;
+					\begin{scope}[shift={(0,0.15)}]
+						\fill[black!55] (0.49,0.53) -- (0.77,0.53) -- (0.80,0.49) -- (0.80,0.42) -- (0.49,0.42) -- cycle;
+						\fill[black!55] (0.80,0.48) -- (0.89,0.47) -- (0.89,0.44) -- (0.80,0.43) -- cycle;
+						\fill[black!55] (0.56,0.44) -- (0.66,0.44) -- (0.62,0.26) -- (0.52,0.29) -- cycle;
+					\end{scope}
+					\fill[black!55] (0.47,0.47) circle (0.025);
+					\fill[black!55] (-0.22,0.42) -- (-0.08,0.52) -- (0.05,0.40) -- (-0.10,0.30) -- cycle;
+					\fill[black!55] (0.02,0.20) -- (-0.18,-0.75) -- (-0.06,-0.78) -- (0.11,0.18) -- cycle;
+					\fill[black!55] (0.11,0.18) -- (0.30,-0.70) -- (0.42,-0.67) -- (0.20,0.20) -- cycle;
+				\end{scope}
+				% No bullets (k = 0) --- intentionally omitted
+				% Scattered balloons still remaining
+				\foreach \x/\y in {2/4, 5/1, 4/5, 7/2, 6/6, 8/3}
+					{ \drawballoon{\x}{\y}{black!55} }
+				\draw[gray!40, thick] (-2,0) -- (9,0);
+				\draw[opacity=0] (9,7) -- (9,0);
+				\node[font=\scriptsize] at (3.5,-0.6) {\(\cP \neq \emptyset,\ k = 0\)};
+			\end{tikzpicture}
+
+			\vskip 0.3em
+			\alert{\textbf{No}}
+		\end{column}
+
+		\begin{column}{0.04\textwidth}\end{column}
+
+		%--- Case 3: Cannot apply reduction rule ---
+		\begin{column}{0.30\textwidth}
+			\centering
+			\begin{tikzpicture}[scale=0.37]
+				% Gunner
+				\begin{scope}[shift={(-1.5,2.8)}]
+					\fill[black!55] (0,0.95) circle (0.18);
+					\fill[black!55] (-0.12,0.75) -- (0.18,0.68) -- (0.24,0.25) -- (-0.02,0.20) -- cycle;
+					\fill[black!55] (0.02,0.58) -- (0.49,0.53) -- (0.52,0.43) -- (0.00,0.43) -- cycle;
+					\begin{scope}[shift={(0,0.15)}]
+						\fill[black!55] (0.49,0.53) -- (0.77,0.53) -- (0.80,0.49) -- (0.80,0.42) -- (0.49,0.42) -- cycle;
+						\fill[black!55] (0.80,0.48) -- (0.89,0.47) -- (0.89,0.44) -- (0.80,0.43) -- cycle;
+						\fill[black!55] (0.56,0.44) -- (0.66,0.44) -- (0.62,0.26) -- (0.52,0.29) -- cycle;
+					\end{scope}
+					\fill[black!55] (0.47,0.47) circle (0.025);
+					\fill[black!55] (-0.22,0.42) -- (-0.08,0.52) -- (0.05,0.40) -- (-0.10,0.30) -- cycle;
+					\fill[black!55] (0.02,0.20) -- (-0.18,-0.75) -- (-0.06,-0.78) -- (0.11,0.18) -- cycle;
+					\fill[black!55] (0.11,0.18) -- (0.30,-0.70) -- (0.42,-0.67) -- (0.20,0.20) -- cycle;
+				\end{scope}
+				% Three bullets remaining (k = 2 > 0)
+				\foreach \x in {-2.20,-1.85} {
+						\begin{scope}[rotate around={-90:(\x,4.65)}]
+							\drawbullet{\x}{4.65}{black!30}
+						\end{scope}
+					}
+				% Scattered balloons: no 3 are collinear, so rule cannot apply
+				\foreach \x/\y in {2/6, 5/3, 8/5, 4/1}
+					{ \drawballoon{\x}{\y}{black!55} }
+				\draw[gray!40, thick] (-2,0) -- (9,0);
+				\draw[opacity=0] (9,7) -- (9,0);
+				\node[font=\scriptsize] at (3.5,-0.6) {帰着規則が適用不可};
+			\end{tikzpicture}
+
+			\vskip 0.3em
+			\textbf{→ どうなる？}
+		\end{column}
+	\end{columns}
+
+	\note[item]{どんな直線の選び方でも \(\cP \neq \emptyset, k=0\) なら No と結論づけられること}
+\end{frame}
+
+\begin{frame}{\PLC のカーネル}
+	\begin{block}{Reduction PLC.}
+		\(k+1\) 点を通る直線 \(\ell\) が存在するならば，\(\cP\) から \(\ell\) の点を削除し，\(k\) を \(1\) 減らす．
+	\end{block}
+
+	\structure{\textbf{Reduction PLC.} が適用できないインスタンス}
+
+	\begin{claim}
+		\((\cP, k)\) について \textnormal{\textbf{Reduction PLC.}} がこれ以上適用できないとする．
+		このとき，\((\cP, k) \in\) \PLC ならば，\(|P| \le k^2\) である．
+	\end{claim}
+
+	\only<1>{
+		\textbf{証明. }
+		Yes インスタンスなので，\(|\cP|\) 点を高々 \(k\) 本の直線でカバーできる．また \textbf{Reduction PLC.} が適用できないことから，各直線は高々 \(k\) 点しかカバーしない．\hfill\qed
 	}
+
+	\only<2>{
+		主張の対偶を取れば，\(|\cP| > k^2\) の場合，即座に No インスタンスと結論づけられる．
+		\begin{theorem}[\cite{lokshtanov2009new}, \PLC のカーネルサイズ]
+			\PLC 問題は \(k^2\) 点のカーネルを持つ．
+		\end{theorem}
+	}
+\end{frame}
+
+\begin{frame}{形式的な定義：還元規則，同値}
+	\begin{definition}[還元規則, reduction rule]
+		パラメータ化問題 \(Q\) の\alert{還元規則}とは，関数 \(\varphi \colon \Sigma^* \times \mathbb{N} \to \Sigma^* \times \mathbb{N}\) であり，\(Q\) のインスタンス \((I, k)\) を\dotuline{同値}なインスタンス \((I', k')\) に写像するもので，\(\varphi\) は \(|I|\) と \(k\) の多項式時間で計算可能であるもの．
+	\end{definition}
+
+	\begin{definition}[同値, equivelent]
+		パラメータ化問題 \(Q\) のインスタンス \((I, k)\) と \((I', k')\) が\alert{同値}であるとは，\((I, k) \in Q\) ならば，またそのときに限り \((I', k') \in Q\) であること．
+	\end{definition}
+
+	\note[item]{ }
+
+\end{frame}
+
+\begin{frame}{形式的な定義：前処理アルゴリズム，出力サイズ，カーネル化アルゴリズム}
+	パラメータ化問題 \(Q\) の\alert{前処理アルゴリズム (preprocessing algorithm)}とは，\((I, k)\) を多項式時間で同値な \((I', k')\) に変換するアルゴリズム．\onslide<2>{前処理アルゴリズム \(\mathcal{A}\) の\alert{出力サイズ (output size)} \(\text{size}_{\mathcal{A}} \colon \mathbb{N} \to \mathbb{N} \cup \{\infty\}\) とは，\[
+			\text{size}_{\mathcal{A}}(k) = \sup \{ |I'| + k' : (I', k') = \mathcal{A}(I, k), I \in \Sigma^* \}
+		\] で定義される関数．}
+
+	\only<1>{
+		\vskip -2em
+
+		\begin{tikzpicture}[
+				rule/.style={
+						draw=black!38, fill=black!6,
+						rounded corners=3pt,
+						minimum width=1.85cm, minimum height=0.7cm,
+						align=center, font=\small
+					},
+				arr/.style={->, >=Stealth, thick, draw=black!45},
+			]
+			% ---- 常に表示: 還元規則（コンポーネント）----
+			\node[rule] (r1) at (0,0)   {還元規則 \(1\)};
+			\node[rule] (r2) at (2.6,0) {還元規則 \(2\)};
+			\node        (dd) at (4.75,0) {\(\cdots\)};
+			\node[rule] (rm) at (6.7,0) {還元規則 \(m\)};
+
+			% バウンディングボックスを固定（オーバーレイ間でレイアウトが変わらないよう）
+			\draw[opacity=0] (-2.4,-1.7) rectangle (9.2,1.4);
+
+			% 入出力
+			\node[font=\normalsize, text=black!65] (in)  at (-2.1,0) {\((I,k)\)};
+			\node[font=\normalsize, text=black!65] (out) at ( 8.9,0) {\((I',k')\)};
+
+			% 前向き矢印
+			\draw[arr] (in)  -- (r1);
+			\draw[arr] (r1)  -- (r2);
+			\draw[arr] (r2)  -- (dd);
+			\draw[arr] (dd)  -- (rm);
+			\draw[arr] (rm)  -- (out);
+
+			% ループバック矢印
+			\draw[arr, draw=black!28, rounded corners=4pt]
+			(rm.south) -- ++(0,-0.8)
+			-- node[below, font=\scriptsize, text=black!45]
+			{}
+			++(-6.7,0)
+			-- (r1.south);
+
+			% 前処理アルゴリズム外枠
+			\draw[draw=black!28, rounded corners=5pt, dashed]
+			(-1.05,-1.5) rectangle (7.85,1.0);
+			\node[font=\scriptsize, text=black!50] at (3.4,1.22)
+			{前処理アルゴリズム};
+		\end{tikzpicture}
+	}
+
+	\onslide<2>{
+		\begin{definition}[カーネル化アルゴリズム, kernelization algorithm]
+			パラメータ化問題 \(Q\) の\alert{カーネル化アルゴリズム}とは，\(Q\) の前処理アルゴリズムであり，
+			ある計算可能な関数 \(g\) に対して
+			\[
+				\text{size}_{\mathcal{A}}(k) \leq g(k)
+			\]
+			が成り立つもの．
+		\end{definition}
+	}
+
+	\note[item]{
+		還元規則そのものも前処理アルゴリズムであるが，複数の還元規則を連続的に適用するものも定義に含まれることに注意する．
+	}
+	\note[item]{
+		理論的に解析される前の（アイデア段階の）アルゴリズムを便宜的に名付けるために，より一般的な前処理アルゴリズムの定義を行なったものと思われる
+	}
+\end{frame}
+
+\begin{frame}{例：\VC}
+
+	\begin{problem}[\VC]
+	グラフ \(G\) と整数 \(k\) が与えられたとき，\(S \subseteq V(G)\) であって \(|S| \le k\) かつ全ての辺の少なくとも一方の端点が \(S\) に属するものが存在するかどうかを判定せよ．
+	\end{problem}
+
+	\begin{block}{Reduction VC.1.}
+		孤立点を削除する．
+	\end{block}
+
+	\begin{block}{Reduction VC.2.}
+		次数 \(k+1\) 以上の頂点 \(v\) が存在するならば，\(v\) を削除し，\(k\) を \(1\) 減らす．
+	\end{block}
+
+	\begin{block}{Reduction VC.3.}
+		\((G, k)\) を \textbf{Reduction VC.1, VC2} が適用できないインスタンスとする．
+		このとき，\(k < 0\) ...
+	\end{block}
+
+	\begin{theorem}[\cite{buss1993nondeterminism}]
+		\VC 問題は \(k^2 + k\) 頂点のカーネルを持つ．
+	\end{theorem}
+
+\end{frame}
+
+\begin{frame}{カーネル化の定義と歴史的背景}
+	\structure{初期の定義では \(k' < k\) が要求されていた（例えば \cite{niedermeier2006invitation} でみられる）．}
+
+	\begin{definition}[以前のカーネル化アルゴリズム]
+		パラメータ化問題 \(Q\) の\alert{カーネル化アルゴリズム}とは，\(Q\) の前処理アルゴリズムであり，ある計算可能な関数 \(g\) に対して \((I', k')\) がインスタンス \((I, k)\) に対する出力であるとき，
+		\[
+			\alert{k' < k} \quad \text{かつ} \quad |I'| \le g(k)
+		\]
+		が成り立つもの．
+	\end{definition}
+
+	\structure{現在では，\(k' < k\) という条件は緩和されている．}
+
+	\note[item]{\(k\) が問題の複雑さを表すのなら，縮約によって \(k\) が厳密に小さくなることを求めるのは自然なような気もするが，，，}
+	\note[item]{なお本書では，\(k' > k\) となるような前処理アルゴリズムは登場しない}
+
+\end{frame}
+
+\begin{frame}{\FPT とカーネル化の関係：カーネルを持つならば \FPT}
+	\begin{center}
+		\resizebox{0.90\textwidth}{!}{
+			\begin{columns}[c]
+				\begin{column}{0.32\textwidth}
+					\begin{block}{FPT}
+						\vspace{0.45em}
+						\small
+						Solve in time \(f(k) \cdot |I|^{\mathcal{O}(1)}\)
+					\end{block}
+				\end{column}
+				\begin{column}{0.05\textwidth}
+					\vskip 0.2em
+					\centering
+					\begin{tikzpicture}[scale=0.6, transform shape]
+						\node[single arrow, draw=none, fill=gray!60,
+							minimum width=20pt, minimum height=25pt,
+							single arrow head extend=3pt] {};
+					\end{tikzpicture}\\
+					\begin{tikzpicture}[scale=0.6, transform shape]
+						\node[single arrow, draw=none, fill=orange,
+							minimum width=20pt, minimum height=25pt,
+							single arrow head extend=3pt,
+							shape border rotate=180] {};
+					\end{tikzpicture}
+				\end{column}
+				\begin{column}{0.75\textwidth}
+					\begin{block}{カーネル化}
+						\small
+						\((I, k) \xrightarrow{\text{poly}} (I', k'), \quad |I'| + k' \le g(k)\), and \((I, k) \in Q \Leftrightarrow (I', k') \in Q\)
+					\end{block}
+				\end{column}
+			\end{columns}
+		}
+	\end{center}
+
+	\vspace{-1em}
+
+	\dotfill
+
+	\begin{claim}
+		パラメータ化問題 \(Q\) を有限時間で解く何らかのアルゴリズムが存在するとする．
+		\(Q\) がカーネル化アルゴリズムを持つならば，\(Q\) は \FPT である．
+	\end{claim}
+
+	\textbf{Proof.} \(Q\) に対する \FPT アルゴリズムを構成する．
+
+	インスタンス \((I, k)\) に対して，\(\text{poly}(|I|)\) 時間でカーネル \((I', k')\) を取り出す．
+	その後，\(Q\) に対する何らかのアルゴリズムを実行する．
+
+	\note[item]{例えば停止問題やヒルベルトの第 10 問題（整数係数の多項式方程式が整数解をもつかどうか判定）は，判定するアルゴリズムが存在しないため，カーネル化アルゴリズムがあろうとも \FPT であるとは言い切れない}
+\end{frame}
+
+\begin{frame}{\FPT とカーネル化の関係：\FPT ならばカーネルを持つ}
+
+	\begin{center}
+		\resizebox{0.90\textwidth}{!}{
+			\begin{columns}[c]
+				\begin{column}{0.32\textwidth}
+					\begin{block}{FPT}
+						\vspace{0.45em}
+						\small
+						Solve in time \(f(k) \cdot |I|^{\mathcal{O}(1)}\)
+					\end{block}
+				\end{column}
+				\begin{column}{0.05\textwidth}
+					\vskip 0.2em
+					\centering
+					\begin{tikzpicture}[scale=0.6, transform shape]
+						\node[single arrow, draw=none, fill=orange,
+							minimum width=20pt, minimum height=25pt,
+							single arrow head extend=3pt] {};
+					\end{tikzpicture}\\
+					\begin{tikzpicture}[scale=0.6, transform shape]
+						\node[single arrow, draw=none, fill=gray!60,
+							minimum width=20pt, minimum height=25pt,
+							single arrow head extend=3pt,
+							shape border rotate=180] {};
+					\end{tikzpicture}
+				\end{column}
+				\begin{column}{0.75\textwidth}
+					\begin{block}{カーネル化}
+						\small
+						\((I, k) \xrightarrow{\text{poly}} (I', k'), \quad |I'| + k' \le g(k)\), and \((I, k) \in Q \Leftrightarrow (I', k') \in Q\)
+					\end{block}
+				\end{column}
+			\end{columns}
+		}
+	\end{center}
+
+	\vspace{-1em}
+
+	\dotfill
+
+	\begin{lemma}[Lemma 2.2, p.20]
+		パラメータ化問題 \(Q\) について，もし \(Q\) が \FPT ならば，\(Q\) はカーネル化を持つ．
+	\end{lemma}
+
+	\textbf{Proof.}
+	\(Q\) が \FPT なので，ある計算可能な関数 \(f\) と定数 \(c\) に対して，\\
+	時間 \(f(k) \cdot |I|^c\) で \((I, k) \in Q\) かどうかを判定するアルゴリズム \(A\) が存在する．
+
+	カーネル化アルゴリズムを構成する．
+	入力 \((I, k)\) に対し，\(A\) を最大 \(|I|^{c+1}\) ステップだけ実行する．終了すれば yes/no の自明なインスタンスを返す．
+	終了しなければ，\[
+		f(k) \cdot |I|^{c} > |I|^{c+1} \implies |I| < f(k)
+	\] であるから，\((I, k)\) をカーネルとして返す．\hfill\qed
+
+	\note[item]{\(Q\) が空集合でも，その補集合でもない限り自明な yes/no のインスタンスは存在する．}
+\end{frame}
+
+\begin{frame}{\FPT とカーネル化の関係}
+
+	\begin{theorem}[\cite{niedermeier2006invitation}]
+		決定可能問題 \(Q\) について，\(Q\) は \FPT であることと \(Q\) がカーネル化アルゴリズムを持つことは同値である．
+	\end{theorem}
+
+
+	\begin{remark}
+		ここで作られるカーネル化アルゴリズムは，多くの場合指数カーネルであり，あまり実用的でない
+	\end{remark}
+\end{frame}
+
+\begin{frame}{まとめと今後の予定}
+	\begin{itemize}
+		\item \alert{カーネル化}とは，パラメータ化問題のインスタンスを同値なインスタンスに多項式時間で変換すること．さらに，変換後のインスタンス（カーネル）はパラメータの関数で上界付けられる．
+		      \begin{itemize}
+			      \item \PLC に対する \(k^2\) のカーネル化
+		      \end{itemize}
+		\item パラメータ化問題が \FPT であることは，問題が決定可能でありカーネル化アルゴリズムを持つことと同値である
+	\end{itemize}
+
+	\structure{今後の予定}
+	\begin{itemize}
+		\item 頂点被覆問題，フィードバック弧集合，辺クリーク被覆問題に対するカーネル化アルゴリズム
+		\item カーネル化アルゴリズムを得るためのツールとしてのクラウン補題，拡張補題，ひまわり補題
+	\end{itemize}
 \end{frame}
 
 \begin{frame}[allowframebreaks]{References}
 	\printbibliography[heading=none]{}
+\end{frame}
+
+\begin{frame}{補遺}
+	\structure{Reduction の日本語訳}
 \end{frame}
 
 \end{document}
